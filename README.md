@@ -1,4 +1,4 @@
-# 📝 Blog Platform with Comments
+# 📝 Blog Platform 
 
 A modern Full-Stack Blog Platform built using *Flask, HTML, CSS, JavaScript, and SQLite/PostgreSQL*. Users can register, log in, create blog posts, edit/delete their content, and interact through comments.
 
