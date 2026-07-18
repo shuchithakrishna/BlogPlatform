@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}BlogPlatform - Home{% endblock %}
+{% block content %}
+
+<section class="hero">
+  <div class="hero-content">
+    <h1>Ideas Worth Sharing</h1>
+    <p>Discover stories, tutorials, and insights from writers around the world. Join the conversation today.</p>
+    <div class="hero-actions">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('pages.create_post_page') }}" class="btn btn-primary btn-lg">Write a Post</a>
+      {% else %}
+        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary btn-lg">Get Started</a>
+      {% endif %}
+      <a href="#posts" class="btn btn-outline btn-lg">Browse Posts</a>
+    </div>
+  </div>
+</section>
+
+<div class="container page-grid" id="posts">
+  <div class="content-column">
+
+    <div class="search-bar">
+      <form method="GET" action="{{ url_for('pages.index') }}" class="search-form">
+        <input type="text" name="search" placeholder="Search by title or category..." value="{{ search }}" class="search-input">
+        <select name="category" class="search-select">
+          <option value="">All Categories</option>
+          {% for cat in categories %}
+            <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary">Search</button>
+        {% if search or selected_category %}
+          <a href="{{ url_for('pages.index') }}" class="btn btn-outline">Clear</a>
+        {% endif %}
+      </form>
+    </div>
+
+    {% if posts %}
+      <div class="blog-grid">
+        {% for post in posts %}
+        <article class="blog-card">
+          <a href="{{ url_for('pages.view_post', post_id=post.id) }}" class="blog-card-image-link">
+            {% if post.image_filename %}
+              <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}" alt="{{ post.title }}" class="blog-card-image">
+            {% else %}
+              <div class="blog-card-image blog-card-placeholder">{{ post.title[0] | upper }}</div>
+            {% endif %}
+          </a>
+          <div class="blog-card-body">
+            <span class="badge">{{ post.category }}</span>
+            <h3><a href="{{ url_for('pages.view_post', post_id=post.id) }}">{{ post.title }}</a></h3>
+            <p class="blog-card-excerpt">{{ post.content[:120] }}{% if post.content|length > 120 %}...{% endif %}</p>
+            <div class="blog-card-meta">
+              <span>By <strong>{{ post.author.username }}</strong></span>
+              <span>{{ post.created_at | timeago }}</span>
+            </div>
+            <div class="blog-card-stats">
+              <span>❤ {{ post.like_count }}</span>
+              <span>💬 {{ post.comment_count }}</span>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      <div class="pagination">
+        {% if pagination.has_prev %}
+          <a href="{{ url_for('pages.index', page=pagination.prev_num, search=search, category=selected_category) }}" class="page-link">&laquo; Prev</a>
+        {% endif %}
+        {% for p in pagination.iter_pages() %}
+          {% if p %}
+            <a href="{{ url_for('pages.index', page=p, search=search, category=selected_category) }}" class="page-link {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+          {% else %}
+            <span class="page-ellipsis">...</span>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+          <a href="{{ url_for('pages.index', page=pagination.next_num, search=search, category=selected_category) }}" class="page-link">Next &raquo;</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="empty-state">
+        <p>No posts found. {% if current_user.is_authenticated %}<a href="{{ url_for('pages.create_post_page') }}">Write the first one!</a>{% endif %}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-widget">
+      <h4>Recent Posts</h4>
+      <ul class="sidebar-list">
+        {% for p in recent_posts %}
+          <li><a href="{{ url_for('pages.view_post', post_id=p.id) }}">{{ p.title }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h4>Popular Posts</h4>
+      <ul class="sidebar-list">
+        {% for p in popular_posts %}
+          <li><a href="{{ url_for('pages.view_post', post_id=p.id) }}">{{ p.title }}</a> <span class="sidebar-likes">❤ {{ p.like_count }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <div class="sidebar-widget">
+      <h4>Categories</h4>
+      <div class="category-tags">
+        {% for cat in categories %}
+          <a href="{{ url_for('pages.index', category=cat) }}" class="tag">{{ cat }}</a>
+        {% endfor %}
+      </div>
+    </div>
+  </aside>
+</div>
+
+{% endblock %}

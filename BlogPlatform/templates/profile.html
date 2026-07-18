@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}My Profile - BlogPlatform{% endblock %}
+{% block content %}
+<div class="container narrow">
+  <div class="profile-header">
+    <div class="profile-avatar">{{ current_user.username[0] | upper }}</div>
+    <div>
+      <h1>{{ current_user.username }}</h1>
+      <p class="text-muted">{{ current_user.email }}</p>
+      <p class="text-muted">Member since {{ current_user.created_at.strftime('%B %Y') }}</p>
+    </div>
+  </div>
+
+  <div class="form-card">
+    <h2>Update Profile</h2>
+    <form method="POST" action="{{ url_for('profile.update_profile') }}" class="post-form" id="profileForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" value="{{ current_user.email }}" required>
+      </div>
+      <div class="form-group">
+        <label for="bio">Bio</label>
+        <textarea id="bio" name="bio" rows="3" maxlength="500">{{ current_user.bio or '' }}</textarea>
+      </div>
+      <div class="form-group">
+        <label for="new_password">New Password (leave blank to keep current)</label>
+        <input type="password" id="new_password" name="new_password" minlength="8">
+        <small class="form-hint">At least 8 characters, one letter and one number.</small>
+      </div>
+      <button type="submit" class="btn btn-primary">Save Changes</button>
+    </form>
+  </div>
+
+  <div class="page-header" style="margin-top: 2.5rem;">
+    <h2>My Posts ({{ posts|length }})</h2>
+  </div>
+  {% if posts %}
+    <div class="blog-grid">
+      {% for post in posts %}
+      <article class="blog-card">
+        <a href="{{ url_for('pages.view_post', post_id=post.id) }}" class="blog-card-image-link">
+          {% if post.image_filename %}
+            <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}" alt="{{ post.title }}" class="blog-card-image">
+          {% else %}
+            <div class="blog-card-image blog-card-placeholder">{{ post.title[0] | upper }}</div>
+          {% endif %}
+        </a>
+        <div class="blog-card-body">
+          <span class="badge">{{ post.category }}</span>
+          <h3><a href="{{ url_for('pages.view_post', post_id=post.id) }}">{{ post.title }}</a></h3>
+          <div class="blog-card-meta">
+            <span>{{ post.created_at | timeago }}</span>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <p>You haven't written any posts yet. <a href="{{ url_for('pages.create_post_page') }}">Create your first post</a>.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('profileForm').addEventListener('submit', function() { showSpinner(); });
+</script>
+{% endblock %}

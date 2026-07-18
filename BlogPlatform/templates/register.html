@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Register - BlogPlatform{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Create an Account</h2>
+    <p class="auth-subtitle">Join our community of writers and readers.</p>
+    <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form" id="registerForm" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" name="username" required minlength="3" autofocus>
+        <small class="form-error" id="usernameError"></small>
+      </div>
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+        <small class="form-error" id="emailError"></small>
+      </div>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required minlength="8">
+        <small class="form-hint">At least 8 characters, one letter and one number.</small>
+        <small class="form-error" id="passwordError"></small>
+      </div>
+      <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <input type="password" id="confirm_password" name="confirm_password" required minlength="8">
+        <small class="form-error" id="confirmError"></small>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Sign Up</button>
+    </form>
+    <p class="auth-footer">Already have an account? <a href="{{ url_for('pages.login_page') }}">Log in</a></p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+  let valid = true;
+  const username = document.getElementById('username');
+  const email = document.getElementById('email');
+  const password = document.getElementById('password');
+  const confirm = document.getElementById('confirm_password');
+
+  document.querySelectorAll('.form-error').forEach(el => el.textContent = '');
+
+  if (username.value.trim().length < 3) {
+    document.getElementById('usernameError').textContent = 'Username must be at least 3 characters.';
+    valid = false;
+  }
+  const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailPattern.test(email.value.trim())) {
+    document.getElementById('emailError').textContent = 'Please enter a valid email address.';
+    valid = false;
+  }
+  const passPattern = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
+  if (!passPattern.test(password.value)) {
+    document.getElementById('passwordError').textContent = 'Password needs 8+ chars with a letter and a number.';
+    valid = false;
+  }
+  if (password.value !== confirm.value) {
+    document.getElementById('confirmError').textContent = 'Passwords do not match.';
+    valid = false;
+  }
+  if (!valid) { e.preventDefault(); return; }
+  showSpinner();
+});
+</script>
+{% endblock %}

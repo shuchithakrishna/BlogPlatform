@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}BlogPlatform{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="navbar-container">
+    <a href="{{ url_for('pages.index') }}" class="navbar-brand">
+      <span class="brand-icon">✎</span> BlogPlatform
+    </a>
+
+    <button class="navbar-toggle" id="navToggle" aria-label="Toggle navigation">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="navbar-links" id="navLinks">
+      <a href="{{ url_for('pages.index') }}" class="nav-link {% if request.endpoint == 'pages.index' %}active{% endif %}">Home</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('pages.dashboard') }}" class="nav-link {% if request.endpoint == 'pages.dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('pages.create_post_page') }}" class="nav-link {% if request.endpoint == 'pages.create_post_page' %}active{% endif %}">New Post</a>
+        <a href="{{ url_for('profile.profile') }}" class="nav-link {% if request.endpoint == 'profile.profile' %}active{% endif %}">Profile</a>
+        <form action="{{ url_for('auth.logout') }}" method="POST" class="inline-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn btn-outline btn-sm">Logout</button>
+        </form>
+        <span class="navbar-user">Hi, {{ current_user.username }}</span>
+      {% else %}
+        <a href="{{ url_for('pages.login_page') }}" class="nav-link {% if request.endpoint == 'pages.login_page' %}active{% endif %}">Login</a>
+        <a href="{{ url_for('pages.register_page') }}" class="btn btn-primary btn-sm">Sign Up</a>
+      {% endif %}
+      <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="flash-container" id="flashContainer">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash-message flash-{{ category }}">
+          <span>{{ message }}</span>
+          <button class="flash-close" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="footer-container">
+    <div class="footer-brand">
+      <span class="brand-icon">✎</span> BlogPlatform
+      <p>A modern space to write, share, and discuss ideas.</p>
+    </div>
+    <div class="footer-links">
+      <h4>Explore</h4>
+      <a href="{{ url_for('pages.index') }}">Home</a>
+      <a href="{{ url_for('pages.register_page') }}">Join Us</a>
+    </div>
+    <div class="footer-links">
+      <h4>Account</h4>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('pages.dashboard') }}">Dashboard</a>
+        <a href="{{ url_for('profile.profile') }}">Profile</a>
+      {% else %}
+        <a href="{{ url_for('pages.login_page') }}">Login</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="footer-bottom">
+    &copy; 2026 BlogPlatform. All rights reserved.
+  </div>
+</footer>
+
+<div class="loading-spinner-overlay" id="loadingSpinner">
+  <div class="spinner"></div>
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

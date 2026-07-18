@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}New Post - BlogPlatform{% endblock %}
+{% block content %}
+<div class="container narrow">
+  <div class="form-card">
+    <h1>Create a New Post</h1>
+    <form id="createPostForm" class="post-form" novalidate>
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required maxlength="200">
+        <small class="form-error" id="titleError"></small>
+      </div>
+      <div class="form-group">
+        <label for="category">Category</label>
+        <input type="text" id="category" name="category" placeholder="e.g. Technology, Travel, Lifestyle" value="General">
+      </div>
+      <div class="form-group">
+        <label for="content">Content</label>
+        <textarea id="content" name="content" rows="10" required></textarea>
+        <small class="form-error" id="contentError"></small>
+      </div>
+      <div class="form-group">
+        <label for="image">Cover Image (optional)</label>
+        <input type="file" id="image" name="image" accept="image/png, image/jpeg, image/gif, image/webp">
+      </div>
+      <div class="form-actions">
+        <a href="{{ url_for('pages.dashboard') }}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">Publish Post</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('createPostForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  document.querySelectorAll('.form-error').forEach(el => el.textContent = '');
+
+  const title = document.getElementById('title').value.trim();
+  const content = document.getElementById('content').value.trim();
+  let valid = true;
+  if (!title) { document.getElementById('titleError').textContent = 'Title is required.'; valid = false; }
+  if (!content) { document.getElementById('contentError').textContent = 'Content cannot be empty.'; valid = false; }
+  if (!valid) return;
+
+  const formData = new FormData(this);
+  showSpinner();
+  try {
+    const res = await fetch('/api/posts', { method: 'POST', body: formData });
+    const data = await res.json();
+    hideSpinner();
+    if (res.ok) {
+      showToast('Post published!', 'success');
+      setTimeout(() => { window.location.href = `/posts/${data.id}`; }, 700);
+    } else {
+      showToast(data.error || 'Failed to publish post.', 'error');
+    }
+  } catch (err) {
+    hideSpinner();
+    showToast('Network error. Please try again.', 'error');
+  }
+});
+</script>
+{% endblock %}

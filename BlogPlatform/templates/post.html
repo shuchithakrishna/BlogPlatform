@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} - BlogPlatform{% endblock %}
+{% block content %}
+<div class="container narrow">
+  <article class="single-post">
+    {% if post.image_filename %}
+      <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}" alt="{{ post.title }}" class="single-post-image">
+    {% endif %}
+    <span class="badge">{{ post.category }}</span>
+    <h1>{{ post.title }}</h1>
+    <div class="single-post-meta">
+      <span>By <strong>{{ post.author.username }}</strong></span>
+      <span>&bull;</span>
+      <span>{{ post.created_at | timeago }}</span>
+    </div>
+
+    <div class="single-post-content">
+      {{ post.content }}
+    </div>
+
+    <div class="single-post-actions">
+      <button class="btn like-btn {% if current_user.is_authenticated and current_user in post.liked_by %}liked{% endif %}"
+              id="likeBtn" onclick="toggleLike({{ post.id }})" {% if not current_user.is_authenticated %}disabled title="Log in to like posts"{% endif %}>
+        <span id="likeIcon">{% if current_user.is_authenticated and current_user in post.liked_by %}❤{% else %}🤍{% endif %}</span>
+        <span id="likeCount">{{ post.like_count }}</span> Likes
+      </button>
+
+      {% if current_user.is_authenticated and current_user.id == post.user_id %}
+        <a href="{{ url_for('pages.edit_post_page', post_id=post.id) }}" class="btn btn-outline">Edit Post</a>
+        <button class="btn btn-danger" onclick="deletePostAndRedirect({{ post.id }})">Delete Post</button>
+      {% endif %}
+    </div>
+  </article>
+
+  <section class="comments-section">
+    <h3>Comments (<span id="commentCount">{{ comments|length }}</span>)</h3>
+
+    {% if current_user.is_authenticated %}
+      <form id="commentForm" class="comment-form">
+        <textarea id="commentContent" placeholder="Share your thoughts..." rows="3" required maxlength="1000"></textarea>
+        <small class="form-error" id="commentError"></small>
+        <button type="submit" class="btn btn-primary">Post Comment</button>
+      </form>
+    {% else %}
+      <p class="text-muted">
+        <a href="{{ url_for('pages.login_page') }}">Log in</a> to join the discussion.
+      </p>
+    {% endif %}
+
+    <div class="comment-list" id="commentList">
+      {% for comment in comments %}
+      <div class="comment-item" data-comment-id="{{ comment.id }}">
+        <div class="comment-avatar">{{ comment.author.username[0] | upper }}</div>
+        <div class="comment-body">
+          <div class="comment-header">
+            <strong>{{ comment.author.username }}</strong>
+            <span class="comment-time">{{ comment.created_at | timeago }}</span>
+          </div>
+          <p class="comment-content" id="commentContent-{{ comment.id }}">{{ comment.content }}</p>
+          {% if current_user.is_authenticated and current_user.id == comment.user_id %}
+          <div class="comment-actions">
+            <button class="link-btn" onclick="editComment({{ comment.id }})">Edit</button>
+            <button class="link-btn danger" onclick="deleteComment({{ comment.id }})">Delete</button>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const POST_ID = {{ post.id }};
+const IS_AUTHENTICATED = {{ 'true' if current_user.is_authenticated else 'false' }};
+
+async function toggleLike(postId) {
+  if (!IS_AUTHENTICATED) return;
+  try {
+    const res = await fetch(`/api/posts/${postId}/like`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById('likeCount').textContent = data.like_count;
+      document.getElementById('likeIcon').textContent = data.liked ? '❤' : '🤍';
+      document.getElementById('likeBtn').classList.toggle('liked', data.liked);
+    }
+  } catch (err) {
+    showToast('Could not update like.', 'error');
+  }
+}
+
+async function deletePostAndRedirect(postId) {
+  if (!confirm('Delete this post permanently?')) return;
+  showSpinner();
+  const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+  hideSpinner();
+  if (res.ok) {
+    showToast('Post deleted.', 'success');
+    setTimeout(() => window.location.href = '/dashboard', 700);
+  } else {
+    const data = await res.json();
+    showToast(data.error || 'Failed to delete post.', 'error');
+  }
+}
+
+document.getElementById('commentForm')?.addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const textarea = document.getElementById('commentContent');
+  const content = textarea.value.trim();
+  document.getElementById('commentError').textContent = '';
+  if (!content) {
+    document.getElementById('commentError').textContent = 'Comment cannot be empty.';
+    return;
+  }
+  showSpinner();
+  try {
+    const res = await fetch(`/api/posts/${POST_ID}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    const data = await res.json();
+    hideSpinner();
+    if (res.ok) {
+      prependComment(data);
+      textarea.value = '';
+      showToast('Comment added.', 'success');
+    } else {
+      showToast(data.error || 'Failed to add comment.', 'error');
+    }
+  } catch (err) {
+    hideSpinner();
+    showToast('Network error. Please try again.', 'error');
+  }
+});
+
+function prependComment(comment) {
+  const list = document.getElementById('commentList');
+  const div = document.createElement('div');
+  div.className = 'comment-item';
+  div.dataset.commentId = comment.id;
+  div.innerHTML = `
+    <div class="comment-avatar">${comment.author[0].toUpperCase()}</div>
+    <div class="comment-body">
+      <div class="comment-header">
+        <strong>${escapeHtml(comment.author)}</strong>
+        <span class="comment-time">just now</span>
+      </div>
+      <p class="comment-content" id="commentContent-${comment.id}">${escapeHtml(comment.content)}</p>
+      <div class="comment-actions">
+        <button class="link-btn" onclick="editComment(${comment.id})">Edit</button>
+        <button class="link-btn danger" onclick="deleteComment(${comment.id})">Delete</button>
+      </div>
+    </div>
+  `;
+  list.prepend(div);
+  const countEl = document.getElementById('commentCount');
+  countEl.textContent = parseInt(countEl.textContent) + 1;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function editComment(commentId) {
+  const p = document.getElementById(`commentContent-${commentId}`);
+  const original = p.textContent;
+  p.innerHTML = `<textarea class="comment-edit-textarea" rows="2">${escapeHtml(original)}</textarea>
+    <div class="comment-edit-actions">
+      <button class="btn btn-sm btn-primary" onclick="saveComment(${commentId})">Save</button>
+      <button class="btn btn-sm btn-outline" onclick="cancelEdit(${commentId}, \`${original.replace(/`/g, "\\`")}\`)">Cancel</button>
+    </div>`;
+}
+
+function cancelEdit(commentId, original) {
+  document.getElementById(`commentContent-${commentId}`).innerHTML = escapeHtml(original);
+}
+
+async function saveComment(commentId) {
+  const textarea = document.querySelector(`#commentContent-${commentId} .comment-edit-textarea`);
+  const content = textarea.value.trim();
+  if (!content) { showToast('Comment cannot be empty.', 'error'); return; }
+  showSpinner();
+  try {
+    const res = await fetch(`/api/comments/${commentId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content })
+    });
+    const data = await res.json();
+    hideSpinner();
+    if (res.ok) {
+      document.getElementById(`commentContent-${commentId}`).innerHTML = escapeHtml(data.content);
+      showToast('Comment updated.', 'success');
+    } else {
+      showToast(data.error || 'Failed to update comment.', 'error');
+    }
+  } catch (err) {
+    hideSpinner();
+    showToast('Network error. Please try again.', 'error');
+  }
+}
+
+async function deleteComment(commentId) {
+  if (!confirm('Delete this comment?')) return;
+  showSpinner();
+  try {
+    const res = await fetch(`/api/comments/${commentId}`, { method: 'DELETE' });
+    hideSpinner();
+    if (res.ok) {
+      document.querySelector(`.comment-item[data-comment-id="${commentId}"]`).remove();
+      const countEl = document.getElementById('commentCount');
+      countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+      showToast('Comment deleted.', 'success');
+    } else {
+      const data = await res.json();
+      showToast(data.error || 'Failed to delete comment.', 'error');
+    }
+  } catch (err) {
+    hideSpinner();
+    showToast('Network error. Please try again.', 'error');
+  }
+}
+</script>
+{% endblock %}

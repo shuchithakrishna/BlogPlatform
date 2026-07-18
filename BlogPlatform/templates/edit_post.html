@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Edit Post - BlogPlatform{% endblock %}
+{% block content %}
+<div class="container narrow">
+  <div class="form-card">
+    <h1>Edit Post</h1>
+    <form id="editPostForm" class="post-form" novalidate>
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required maxlength="200" value="{{ post.title }}">
+        <small class="form-error" id="titleError"></small>
+      </div>
+      <div class="form-group">
+        <label for="category">Category</label>
+        <input type="text" id="category" name="category" value="{{ post.category }}">
+      </div>
+      <div class="form-group">
+        <label for="content">Content</label>
+        <textarea id="content" name="content" rows="10" required>{{ post.content }}</textarea>
+        <small class="form-error" id="contentError"></small>
+      </div>
+      {% if post.image_filename %}
+      <div class="form-group">
+        <label>Current Image</label>
+        <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}" alt="Current cover" class="current-image-preview">
+      </div>
+      {% endif %}
+      <div class="form-group">
+        <label for="image">Replace Cover Image (optional)</label>
+        <input type="file" id="image" name="image" accept="image/png, image/jpeg, image/gif, image/webp">
+      </div>
+      <div class="form-actions">
+        <a href="{{ url_for('pages.dashboard') }}" class="btn btn-outline">Cancel</a>
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('editPostForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  document.querySelectorAll('.form-error').forEach(el => el.textContent = '');
+
+  const title = document.getElementById('title').value.trim();
+  const content = document.getElementById('content').value.trim();
+  let valid = true;
+  if (!title) { document.getElementById('titleError').textContent = 'Title is required.'; valid = false; }
+  if (!content) { document.getElementById('contentError').textContent = 'Content cannot be empty.'; valid = false; }
+  if (!valid) return;
+
+  const formData = new FormData(this);
+  showSpinner();
+  try {
+    const res = await fetch('/api/posts/{{ post.id }}', { method: 'PUT', body: formData });
+    const data = await res.json();
+    hideSpinner();
+    if (res.ok) {
+      showToast('Post updated!', 'success');
+      setTimeout(() => { window.location.href = `/posts/{{ post.id }}`; }, 700);
+    } else {
+      showToast(data.error || 'Failed to update post.', 'error');
+    }
+  } catch (err) {
+    hideSpinner();
+    showToast('Network error. Please try again.', 'error');
+  }
+});
+</script>
+{% endblock %}
